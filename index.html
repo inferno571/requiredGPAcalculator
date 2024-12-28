@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CGPA Calculator for JIIT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, button {
+            padding: 10px;
+            margin-top: 5px;
+            width: 100%;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Target CGPA Calculator</h1>
+    <form id="cgpaForm">
+        <div class="form-group">
+            <label for="currentCGPA">Current CGPA:</label>
+            <input type="number" id="currentCGPA" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label for="currentSemester">Current Semester (1-8):</label>
+            <input type="number" id="currentSemester" min="1" max="8" required>
+        </div>
+        <div class="form-group">
+            <label for="targetCGPA">Target CGPA:</label>
+            <input type="number" id="targetCGPA" step="0.01" required>
+        </div>
+        <button type="button" onclick="calculateSGPA()">Calculate</button>
+    </form>
+
+    <div id="result" class="result" style="display: none;">
+        <h3>Results:</h3>
+        <p id="sixthSemSGPA"></p>
+        <p id="eighthSemSGPA"></p>
+    </div>
+
+    <script>
+        function calculateSGPA() {
+            const currentCGPA = parseFloat(document.getElementById("currentCGPA").value);
+            const currentSemester = parseInt(document.getElementById("currentSemester").value);
+            const targetCGPA = parseFloat(document.getElementById("targetCGPA").value);
+
+            const credits = [18.5, 20.5, 23, 18, 23, 23, 16, 17];
+            let completedCredits = 0;
+
+           
+            for (let i = 0; i < currentSemester - 1; i++) {
+                completedCredits += credits[i];
+            }
+
+
+            const remainingCredits6th = credits.slice(currentSemester - 1, 6).reduce((a, b) => a + b, 0);
+            const remainingCredits8th = credits.slice(currentSemester - 1).reduce((a, b) => a + b, 0);
+
+
+            const neededGPA6th = (targetCGPA * (completedCredits + remainingCredits6th) - currentCGPA * completedCredits) / remainingCredits6th;
+            const neededGPA8th = (targetCGPA * (completedCredits + remainingCredits8th) - currentCGPA * completedCredits) / remainingCredits8th;
+
+
+            if (neededGPA6th > 10) {
+                document.getElementById("sixthSemSGPA").textContent = "Average SGPA needed until the 6th semester: Impossible to get";
+            } else {
+                document.getElementById("sixthSemSGPA").textContent = 
+                    `Average SGPA needed until the 6th semester: ${neededGPA6th.toFixed(2)}`;
+            }
+
+            if (neededGPA8th > 10) {
+                document.getElementById("eighthSemSGPA").textContent = "Average SGPA needed until the 8th semester: Impossible to get";
+            } else {
+                document.getElementById("eighthSemSGPA").textContent = 
+                    `Average SGPA needed until the 8th semester: ${neededGPA8th.toFixed(2)}`;
+            }
+
+            document.getElementById("result").style.display = "block";
+        }
+    </script>
+</body>
+</html>
