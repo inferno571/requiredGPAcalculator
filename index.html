@@ -1,11 +1,14 @@
+
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CGPA Calculator for JIIT</title>
+    <title>JIIT Target CGPA Calculator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            transition: background-color 0.3s, color 0.3s;
         }
         h1 {
             color: #4CAF50;
@@ -21,25 +24,58 @@
             padding: 10px;
             margin-top: 5px;
             width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
         }
         .result {
             margin-top: 20px;
             padding: 10px;
             background-color: #f9f9f9;
             border: 1px solid #ccc;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode {
+            background-color: #333;
+            color: white;
+        }
+        .dark-mode .result {
+            background-color: #444;
+            color: white;
+        }
+        .warning {
+            color: red;
+            font-weight: bold;
+        }
+        .impossible {
+            background-color: red;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Target CGPA Calculator</h1>
+    <h1>JIIT Target CGPA Calculator</h1>
+    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    <p class="warning">Note: Please enter the number of <strong>completed semesters</strong> (e.g., if you're in the 4th semester, enter 3).</p>
     <form id="cgpaForm">
         <div class="form-group">
             <label for="currentCGPA">Current CGPA:</label>
             <input type="number" id="currentCGPA" step="0.01" required>
         </div>
         <div class="form-group">
-            <label for="currentSemester">Current Semester (1-8):</label>
-            <input type="number" id="currentSemester" min="1" max="8" required>
+            <label for="completedSemesters">Completed Semesters (1-7):</label>
+            <input type="number" id="completedSemesters" min="1" max="7" required>
         </div>
         <div class="form-group">
             <label for="targetCGPA">Target CGPA:</label>
@@ -50,48 +86,81 @@
 
     <div id="result" class="result" style="display: none;">
         <h3>Results:</h3>
-        <p id="sixthSemSGPA"></p>
-        <p id="eighthSemSGPA"></p>
+        <div id="semesterResults"></div>
+    </div>
+
+    <div id="impossibleMessage" class="impossible" style="display: none;">
+        The entered target CGPA is not achievable. You are cooked.
     </div>
 
     <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+        }
+
         function calculateSGPA() {
             const currentCGPA = parseFloat(document.getElementById("currentCGPA").value);
-            const currentSemester = parseInt(document.getElementById("currentSemester").value);
+            const completedSemesters = parseInt(document.getElementById("completedSemesters").value);
             const targetCGPA = parseFloat(document.getElementById("targetCGPA").value);
 
-            const credits = [18.5, 20.5, 23, 18, 23, 23, 16, 17];
+            if (isNaN(currentCGPA) || isNaN(completedSemesters) || isNaN(targetCGPA)) {
+                alert("Please enter valid numeric values for all fields.");
+                return;
+            }
+
+            if (currentCGPA < 0 || currentCGPA > 10 || targetCGPA < 0 || targetCGPA > 10) {
+                alert("CGPA values must be between 0 and 10.");
+                return;
+            }
+
+            if (completedSemesters < 1 || completedSemesters > 7) {
+                alert("Completed semesters must be between 1 and 7.");
+                return;
+            }
+
+            const credits = [18.5, 20.5, 23, 20, 23, 23, 16, 17];
             let completedCredits = 0;
 
-           
-            for (let i = 0; i < currentSemester - 1; i++) {
+            // Calculate completed credits
+            for (let i = 0; i < completedSemesters; i++) {
                 completedCredits += credits[i];
             }
 
+            // Prepare results dynamically for each remaining semester
+            const remainingSemesters = credits.slice(completedSemesters);
+            const semesterResultsDiv = document.getElementById("semesterResults");
+            semesterResultsDiv.innerHTML = ""; // Clear previous results
 
-            const remainingCredits6th = credits.slice(currentSemester - 1, 6).reduce((a, b) => a + b, 0);
-            const remainingCredits8th = credits.slice(currentSemester - 1).reduce((a, b) => a + b, 0);
+            let cumulativeCredits = completedCredits;
+            let isAchievableBy8th = true;
 
+            remainingSemesters.forEach((semesterCredits, index) => {
+                cumulativeCredits += semesterCredits;
+                const semesterNumber = completedSemesters + index + 1;
+                const requiredSGPA = (targetCGPA * cumulativeCredits - currentCGPA * completedCredits) / (cumulativeCredits - completedCredits);
 
-            const neededGPA6th = (targetCGPA * (completedCredits + remainingCredits6th) - currentCGPA * completedCredits) / remainingCredits6th;
-            const neededGPA8th = (targetCGPA * (completedCredits + remainingCredits8th) - currentCGPA * completedCredits) / remainingCredits8th;
+                const resultText = `Average SGPA needed by the end of semester ${semesterNumber}: ${
+                    requiredSGPA > 10 ? "Impossible to achieve" : requiredSGPA.toFixed(2)
+                }`;
 
+                const paragraph = document.createElement("p");
+                paragraph.textContent = resultText;
+                semesterResultsDiv.appendChild(paragraph);
 
-            if (neededGPA6th > 10) {
-                document.getElementById("sixthSemSGPA").textContent = "Average SGPA needed until the 6th semester: Impossible to get";
+                // Check if target CGPA is achievable by the end of the 8th semester
+                if (semesterNumber === 8 && requiredSGPA > 10) {
+                    isAchievableBy8th = false;
+                }
+            });
+
+            // Display appropriate message
+            if (!isAchievableBy8th) {
+                document.getElementById("impossibleMessage").style.display = "block";
+                document.getElementById("result").style.display = "none";
             } else {
-                document.getElementById("sixthSemSGPA").textContent = 
-                    `Average SGPA needed until the 6th semester: ${neededGPA6th.toFixed(2)}`;
+                document.getElementById("impossibleMessage").style.display = "none";
+                document.getElementById("result").style.display = "block";
             }
-
-            if (neededGPA8th > 10) {
-                document.getElementById("eighthSemSGPA").textContent = "Average SGPA needed until the 8th semester: Impossible to get";
-            } else {
-                document.getElementById("eighthSemSGPA").textContent = 
-                    `Average SGPA needed until the 8th semester: ${neededGPA8th.toFixed(2)}`;
-            }
-
-            document.getElementById("result").style.display = "block";
         }
     </script>
 </body>
