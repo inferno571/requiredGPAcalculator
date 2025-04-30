@@ -169,8 +169,7 @@
       return;
     }
 
-    // Example semester credit distribution (adjust if needed)
-    const credits = [24, 26, 26, 25, 24, 25, 23, 21];
+    const credits = [18.5, 20.5, 23, 20, 23, 23, 16, 17];
     const totalSemesters = 8;
     const completedCredits = credits.slice(0, completedSemesters).reduce((a, b) => a + b, 0);
     const remainingSemesters = credits.slice(completedSemesters);
