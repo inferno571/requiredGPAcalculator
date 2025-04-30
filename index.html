@@ -148,39 +148,60 @@
   </footer>
 
   <script>
-    const darkModeBtn = document.getElementById("toggleDarkModeBtn");
-    darkModeBtn.addEventListener("click", () => {
-      document.body.classList.toggle("dark-mode");
-    });
+  const darkModeBtn = document.getElementById("toggleDarkModeBtn");
+  darkModeBtn.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+  });
 
-    function calculateTargetSGPA() {
-      const currentCGPA = parseFloat(document.getElementById("currentCGPA").value);
-      const completedSemesters = parseInt(document.getElementById("completedSemesters").value);
-      const targetCGPA = parseFloat(document.getElementById("targetCGPA").value);
-      const result = document.getElementById("result");
-      const itsOverImg = document.getElementById("itsOverImg");
+  function calculateTargetSGPA() {
+    const currentCGPA = parseFloat(document.getElementById("currentCGPA").value);
+    const completedSemesters = parseInt(document.getElementById("completedSemesters").value);
+    const targetCGPA = parseFloat(document.getElementById("targetCGPA").value);
+    const result = document.getElementById("result");
+    const itsOverImg = document.getElementById("itsOverImg");
+    const semesterResultsDiv = document.getElementById("semesterResults");
 
-      itsOverImg.style.display = "none";
+    itsOverImg.style.display = "none";
+    semesterResultsDiv.innerHTML = "";
 
-      if (isNaN(currentCGPA) || isNaN(completedSemesters) || isNaN(targetCGPA) || completedSemesters < 1 || completedSemesters > 7) {
-        result.textContent = "Please enter valid values for all fields.";
-        return;
-      }
-
-      const totalSemesters = 8;
-      const totalTargetPoints = targetCGPA * totalSemesters;
-      const currentPoints = currentCGPA * completedSemesters;
-      const requiredPoints = totalTargetPoints - currentPoints;
-      const remainingSemesters = totalSemesters - completedSemesters;
-      const requiredSGPA = requiredPoints / remainingSemesters;
-
-      if (requiredSGPA > 10) {
-        result.textContent = `It is not possible to reach the target CGPA. You would need an SGPA of ${requiredSGPA.toFixed(2)} which exceeds the maximum possible. You are cooked`;
-        itsOverImg.style.display = "block";
-      } else {
-        result.textContent = `You need to average an SGPA of ${requiredSGPA.toFixed(2)} in the remaining semesters.`;
-      }
+    if (isNaN(currentCGPA) || isNaN(completedSemesters) || isNaN(targetCGPA) || completedSemesters < 1 || completedSemesters > 7) {
+      result.textContent = "Please enter valid values for all fields.";
+      return;
     }
+
+    // Example semester credit distribution (adjust if needed)
+    const credits = [24, 26, 26, 25, 24, 25, 23, 21];
+    const totalSemesters = 8;
+    const completedCredits = credits.slice(0, completedSemesters).reduce((a, b) => a + b, 0);
+    const remainingSemesters = credits.slice(completedSemesters);
+
+    const totalCredits = credits.reduce((a, b) => a + b, 0);
+    const targetTotalPoints = targetCGPA * totalCredits;
+    const currentPoints = currentCGPA * completedCredits;
+    const remainingCredits = totalCredits - completedCredits;
+    const requiredSGPA = (targetTotalPoints - currentPoints) / remainingCredits;
+
+    if (requiredSGPA > 10) {
+      result.textContent = `It is not possible to reach the target CGPA. You would need an SGPA of ${requiredSGPA.toFixed(2)} which exceeds the maximum possible. You are cooked`;
+      itsOverImg.style.display = "block";
+    } else {
+      result.textContent = `You need to average an SGPA of ${requiredSGPA.toFixed(2)} in the remaining semesters.`;
+    }
+
+    // Now display required SGPA after each upcoming semester
+    let cumulativeCredits = completedCredits;
+    remainingSemesters.forEach((semesterCredits, index) => {
+      cumulativeCredits += semesterCredits;
+      const semesterNumber = completedSemesters + index + 1;
+
+      const sgpaRequiredByThisSemester = (targetCGPA * cumulativeCredits - currentCGPA * completedCredits) / (cumulativeCredits - completedCredits);
+      const span = document.createElement("p");
+      span.textContent = `Average SGPA needed by the end of semester ${semesterNumber}: ${
+        sgpaRequiredByThisSemester > 10 ? "Impossible to achieve" : sgpaRequiredByThisSemester.toFixed(2)
+      }`;
+      semesterResultsDiv.appendChild(span);
+    });
+  }
   </script>
 </body>
 </html>
