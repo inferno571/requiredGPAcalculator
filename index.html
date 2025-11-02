@@ -137,6 +137,19 @@
     <img id="itsOverImg" src="its-over.png" alt="It's Over"/>
 
     <canvas id="sgpaChart"></canvas>
+
+    <div id="creditEditor" style="margin-top: 20px;">
+      <button id="editCreditsBtn" class="toggle-btn">Edit Credit Distribution</button>
+      <div id="creditInputs" style="display: none; margin-top: 15px;">
+        <h3>Edit Semester Credits</h3>
+        <p>
+          Find your curriculum on the <a href="https://www.jiit.ac.in/" target="_blank" rel="noopener noreferrer">JIIT website</a>:<br>
+          <small>ACADEMICS → PROGRAMS OFFERED → B.TECH → [YOUR BRANCH] → CURRICULUM STRUCTURE</small>
+        </p>
+        <div id="semesterCreditsContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px;"></div>
+        <button onclick="saveCredits()">Save Credits</button>
+      </div>
+    </div>
   </div>
 
   <footer>
@@ -152,6 +165,73 @@
       document.body.classList.toggle("dark-mode");
     });
 
+    const editCreditsBtn = document.getElementById("editCreditsBtn");
+    const creditInputs = document.getElementById("creditInputs");
+
+    editCreditsBtn.addEventListener("click", () => {
+      const isHidden = creditInputs.style.display === "none";
+      creditInputs.style.display = isHidden ? "block" : "none";
+      editCreditsBtn.textContent = isHidden ? "Hide Credit Editor" : "Edit Credit Distribution";
+    });
+
+    let credits = [18.5, 20.5, 23, 20, 23, 23, 16, 17]; // Default credits
+    const semesterCreditsContainer = document.getElementById("semesterCreditsContainer");
+
+    function renderCreditInputs() {
+      semesterCreditsContainer.innerHTML = "";
+      credits.forEach((credit, i) => {
+        const label = document.createElement("label");
+        label.htmlFor = `sem${i + 1}`;
+        label.textContent = `Semester ${i + 1}:`;
+        const input = document.createElement("input");
+        input.type = "number";
+        input.step = "0.1";
+        input.id = `sem${i + 1}`;
+        input.value = credit;
+        semesterCreditsContainer.appendChild(label);
+        semesterCreditsContainer.appendChild(input);
+      });
+    }
+
+    function saveCredits() {
+      const newCredits = [];
+      let allValid = true;
+      for (let i = 0; i < 8; i++) {
+        const input = document.getElementById(`sem${i + 1}`);
+        const creditValue = parseFloat(input.value);
+        if (isNaN(creditValue) || creditValue < 0) {
+          allValid = false;
+          break;
+        }
+        newCredits.push(creditValue);
+      }
+      
+      if (allValid) {
+        credits = newCredits;
+        localStorage.setItem("credits", JSON.stringify(credits));
+        alert("Credits saved!");
+        calculateTargetSGPA(); // Recalculate with new credits
+      } else {
+        alert("Please enter valid, non-negative credit values for all semesters.");
+      }
+    }
+    
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedCredits = localStorage.getItem("credits");
+      if (savedCredits) {
+        try {
+          const parsedCredits = JSON.parse(savedCredits);
+          if (Array.isArray(parsedCredits) && parsedCredits.length === 8) {
+            credits = parsedCredits;
+          }
+        } catch (e) {
+          console.error("Error parsing saved credits:", e);
+          localStorage.removeItem("credits"); // Clear corrupted data
+        }
+      }
+      renderCreditInputs();
+    });
+
     function calculateTargetSGPA() {
       const currentCGPA = parseFloat(document.getElementById("currentCGPA").value);
       const completedSemesters = parseInt(document.getElementById("completedSemesters").value);
@@ -164,23 +244,32 @@
       itsOverImg.style.display = "none";
       semesterResultsDiv.innerHTML = "";
 
-      if (isNaN(currentCGPA) || isNaN(completedSemesters) || isNaN(targetCGPA) || completedSemesters < 1 || completedSemesters > 7) {
-        result.textContent = "Please enter valid values for all fields.";
+      if (isNaN(currentCGPA) || isNaN(completedSemesters) || isNaN(targetCGPA) || completedSemesters < 0 || completedSemesters > 8) {
+        result.textContent = "Please enter valid values for all fields (Completed Semesters: 0-8).";
         return;
       }
 
-      const credits = [18.5, 20.5, 23, 20, 23, 23, 16, 17];
+      // Use the potentially user-modified credits array
       const totalCredits = credits.reduce((a, b) => a + b, 0);
       const completedCredits = credits.slice(0, completedSemesters).reduce((a, b) => a + b, 0);
       const remainingCredits = totalCredits - completedCredits;
 
-      const targetPoints = targetCGPA * totalCredits;
+      if (remainingCredits <= 0) {
+        result.textContent = "You have completed all semesters.";
+        semesterResultsDiv.innerHTML = "";
+        if (chartInstance) chartInstance.destroy();
+        return;
+      }
+
       const currentPoints = currentCGPA * completedCredits;
+      const targetPoints = targetCGPA * totalCredits;
       const requiredSGPA = (targetPoints - currentPoints) / remainingCredits;
 
       if (requiredSGPA > 10) {
-        result.textContent = `It is not possible to reach the target CGPA. You would need an SGPA of ${requiredSGPA.toFixed(2)} which exceeds the maximum possible. You are cooked`;
+        result.textContent = `It is not possible to reach the target CGPA. You would need an SGPA of ${requiredSGPA.toFixed(2)} which exceeds the maximum possible. You are cooked.`;
         itsOverImg.style.display = "block";
+      } else if (requiredSGPA < 0) {
+          result.textContent = `You have already achieved your target CGPA! You only need an SGPA of 0.00 in the remaining semesters.`;
       } else {
         result.textContent = `You need to average an SGPA of ${requiredSGPA.toFixed(2)} in the remaining semesters.`;
       }
@@ -193,13 +282,17 @@
       credits.slice(completedSemesters).forEach((semCredits, i) => {
         cumulativeCredits += semCredits;
         const semNumber = completedSemesters + i + 1;
-        const requiredSGPA = (targetCGPA * cumulativeCredits - currentCGPA * completedCredits) / (cumulativeCredits - completedCredits);
+        const futureCreditsToDate = cumulativeCredits - completedCredits;
+
+        if (futureCreditsToDate <= 0) return;
+
+        const requiredAvgSGPA = (targetCGPA * cumulativeCredits - currentPoints) / futureCreditsToDate;
 
         labels.push("Sem " + semNumber);
-        sgpaList.push(requiredSGPA > 10 ? null : parseFloat(requiredSGPA.toFixed(2)));
+        sgpaList.push(requiredAvgSGPA > 10 ? null : parseFloat(requiredAvgSGPA.toFixed(2)));
 
         const semText = `Average SGPA needed by the end of semester ${semNumber}: ${
-          requiredSGPA > 10 ? "Impossible to achieve" : requiredSGPA.toFixed(2)
+          requiredAvgSGPA > 10 ? "Impossible to achieve" : requiredAvgSGPA.toFixed(2)
         }`;
 
         const para = document.createElement("p");
@@ -237,7 +330,7 @@
         options: {
           scales: {
             y: {
-              min: 0,
+              beginAtZero: true,
               max: 10,
               title: {
                 display: true,
