@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JIIT Target CGPA Calculator</title>
   <style>
     body {
@@ -32,7 +33,8 @@
       background-color: #1e1e1e;
     }
 
-    input[type="number"] {
+    input[type="number"],
+    select {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -42,7 +44,8 @@
       color: #000000;
     }
 
-    .dark-mode input[type="number"] {
+    .dark-mode input[type="number"],
+    .dark-mode select {
       background-color: #ffffff;
       color: #000000;
     }
@@ -83,7 +86,8 @@
       background-color: #0288d1;
     }
 
-    #result, #semesterResults {
+    #result,
+    #semesterResults {
       margin-top: 20px;
       font-weight: bold;
     }
@@ -114,41 +118,58 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <img src="jiit-logo.png" alt="JIIT Logo" class="logo"/>
+    <img src="jiit-logo.png" alt="JIIT Logo" class="logo" />
     <button class="toggle-btn" id="toggleDarkModeBtn">Toggle Dark Mode</button>
-    <h2>JIIT Target CGPA Calculator</h2>
-    <p class="note">Note: Please enter the number of <strong>completed semesters</strong> (e.g., if you're in the 4th semester, enter 3).</p>
+    <button class="toggle-btn" id="toggleModeBtn" style="background-color: #673ab7;">Switch to SGPA Calculator</button>
 
-    <label for="currentCGPA">Current CGPA:</label>
-    <input type="number" step="0.01" id="currentCGPA">
+    <div id="targetCalculatorSection">
+      <h2>JIIT Target CGPA Calculator</h2>
+      <p class="note">Note: Please enter the number of <strong>completed semesters</strong> (e.g., if you're in the 4th
+        semester, enter 3).</p>
 
-    <label for="completedSemesters">Completed Semesters (1-7):</label>
-    <input type="number" id="completedSemesters" min="1" max="7">
+      <label for="currentCGPA">Current CGPA:</label>
+      <input type="number" step="0.01" id="currentCGPA">
 
-    <label for="targetCGPA">Target CGPA:</label>
-    <input type="number" step="0.01" id="targetCGPA">
+      <label for="completedSemesters">Completed Semesters (1-7):</label>
+      <input type="number" id="completedSemesters" min="1" max="7">
 
-    <button onclick="calculateTargetSGPA()">Calculate</button>
+      <label for="targetCGPA">Target CGPA:</label>
+      <input type="number" step="0.01" id="targetCGPA">
 
-    <p id="result"></p>
-    <div id="semesterResults"></div>
-    <img id="itsOverImg" src="its-over.png" alt="It's Over"/>
+      <button onclick="calculateTargetSGPA()">Calculate</button>
 
-    <canvas id="sgpaChart"></canvas>
+      <p id="result"></p>
+      <div id="semesterResults"></div>
+      <img id="itsOverImg" src="its-over.png" alt="It's Over" />
 
-    <div id="creditEditor" style="margin-top: 20px;">
-      <button id="editCreditsBtn" class="toggle-btn">Edit Credit Distribution</button>
-      <div id="creditInputs" style="display: none; margin-top: 15px;">
-        <h3>Edit Semester Credits</h3>
-        <p>
-          Find your curriculum on the <a href="https://www.jiit.ac.in/" target="_blank" rel="noopener noreferrer">JIIT website</a>:<br>
-          <small>ACADEMICS → PROGRAMS OFFERED → B.TECH → [YOUR BRANCH] → CURRICULUM STRUCTURE</small>
-        </p>
-        <div id="semesterCreditsContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px;"></div>
-        <button onclick="saveCredits()">Save Credits</button>
+      <canvas id="sgpaChart"></canvas>
+
+      <div id="creditEditor" style="margin-top: 20px;">
+        <button id="editCreditsBtn" class="toggle-btn">Edit Credit Distribution</button>
+        <div id="creditInputs" style="display: none; margin-top: 15px;">
+          <h3>Edit Semester Credits</h3>
+          <p>
+            Find your curriculum on the <a href="https://www.jiit.ac.in/" target="_blank" rel="noopener noreferrer">JIIT
+              website</a>:<br>
+            <small>ACADEMICS → PROGRAMS OFFERED → B.TECH → [YOUR BRANCH] → CURRICULUM STRUCTURE</small>
+          </p>
+          <div id="semesterCreditsContainer"
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px;">
+          </div>
+          <button onclick="saveCredits()">Save Credits</button>
+        </div>
       </div>
+    </div> <!-- End of targetCalculatorSection -->
+
+    <div id="sgpaCalculatorSection" style="display: none;">
+      <h2>SGPA Calculator</h2>
+      <div id="subjectsContainer"></div>
+      <button onclick="addSubjectRow()" style="margin-bottom: 10px; background-color: #4caf50;">+ Add Subject</button>
+      <button onclick="calculateSGPA()">Calculate SGPA</button>
+      <p id="sgpaResult" style="font-weight: bold; margin-top: 20px; font-size: 1.2em;"></p>
     </div>
   </div>
 
@@ -174,7 +195,7 @@
       editCreditsBtn.textContent = isHidden ? "Hide Credit Editor" : "Edit Credit Distribution";
     });
 
-    let credits = [18.5, 20.5, 23, 20, 23, 23, 16, 17]; // Default credits
+    let credits = [18.5, 20.5, 23, 20, 23, 23, 16, 17]; 
     const semesterCreditsContainer = document.getElementById("semesterCreditsContainer");
 
     function renderCreditInputs() {
@@ -205,17 +226,17 @@
         }
         newCredits.push(creditValue);
       }
-      
+
       if (allValid) {
         credits = newCredits;
         localStorage.setItem("credits", JSON.stringify(credits));
         alert("Credits saved!");
-        calculateTargetSGPA(); // Recalculate with new credits
+        calculateTargetSGPA(); 
       } else {
         alert("Please enter valid, non-negative credit values for all semesters.");
       }
     }
-    
+
     document.addEventListener("DOMContentLoaded", () => {
       const savedCredits = localStorage.getItem("credits");
       if (savedCredits) {
@@ -226,7 +247,7 @@
           }
         } catch (e) {
           console.error("Error parsing saved credits:", e);
-          localStorage.removeItem("credits"); // Clear corrupted data
+          localStorage.removeItem("credits"); 
         }
       }
       renderCreditInputs();
@@ -249,7 +270,7 @@
         return;
       }
 
-      // Use the potentially user-modified credits array
+    
       const totalCredits = credits.reduce((a, b) => a + b, 0);
       const completedCredits = credits.slice(0, completedSemesters).reduce((a, b) => a + b, 0);
       const remainingCredits = totalCredits - completedCredits;
@@ -269,7 +290,7 @@
         result.textContent = `It is not possible to reach the target CGPA. You would need an SGPA of ${requiredSGPA.toFixed(2)} which exceeds the maximum possible. You are cooked.`;
         itsOverImg.style.display = "block";
       } else if (requiredSGPA < 0) {
-          result.textContent = `You have already achieved your target CGPA! You only need an SGPA of 0.00 in the remaining semesters.`;
+        result.textContent = `You have already achieved your target CGPA! You only need an SGPA of 0.00 in the remaining semesters.`;
       } else {
         result.textContent = `You need to average an SGPA of ${requiredSGPA.toFixed(2)} in the remaining semesters.`;
       }
@@ -291,9 +312,8 @@
         labels.push("Sem " + semNumber);
         sgpaList.push(requiredAvgSGPA > 10 ? null : parseFloat(requiredAvgSGPA.toFixed(2)));
 
-        const semText = `Average SGPA needed by the end of semester ${semNumber}: ${
-          requiredAvgSGPA > 10 ? "Impossible to achieve" : requiredAvgSGPA.toFixed(2)
-        }`;
+        const semText = `Average SGPA needed by the end of semester ${semNumber}: ${requiredAvgSGPA > 10 ? "Impossible to achieve" : requiredAvgSGPA.toFixed(2)
+          }`;
 
         const para = document.createElement("p");
         para.textContent = semText;
@@ -344,7 +364,7 @@
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   return context.raw === null ? 'Impossible' : 'SGPA: ' + context.raw;
                 }
               }
@@ -353,6 +373,118 @@
         }
       });
     }
+
+    const toggleModeBtn = document.getElementById("toggleModeBtn");
+    const targetSection = document.getElementById("targetCalculatorSection");
+    const sgpaSection = document.getElementById("sgpaCalculatorSection");
+
+    toggleModeBtn.addEventListener("click", () => {
+      if (targetSection.style.display === "none") {
+        targetSection.style.display = "block";
+        sgpaSection.style.display = "none";
+        toggleModeBtn.textContent = "Switch to SGPA Calculator";
+        toggleModeBtn.style.backgroundColor = "#673ab7";
+      } else {
+        targetSection.style.display = "none";
+        sgpaSection.style.display = "block";
+        toggleModeBtn.textContent = "Switch to Target CGPA Calculator";
+        toggleModeBtn.style.backgroundColor = "#0288d1";
+      }
+    });
+
+    function addSubjectRow() {
+      const container = document.getElementById("subjectsContainer");
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "10px";
+      row.style.marginBottom = "10px";
+      row.style.alignItems = "center";
+
+      const creditInput = document.createElement("input");
+      creditInput.type = "number";
+      creditInput.placeholder = "Credits";
+      creditInput.style.flex = "1";
+      creditInput.style.margin = "0";
+      creditInput.min = "0";
+
+      const gradeSelect = document.createElement("select");
+      gradeSelect.style.flex = "1";
+      gradeSelect.style.margin = "0";
+
+      const grades = {
+        "A+": 10, "A": 9, "B+": 8, "B": 7, "C+": 6, "C": 5, "D": 4, "F": 0
+      };
+
+      const defaultOption = document.createElement("option");
+      defaultOption.text = "Grade";
+      defaultOption.value = "";
+      defaultOption.disabled = true;
+      defaultOption.selected = true;
+      gradeSelect.appendChild(defaultOption);
+
+      for (const [grade, point] of Object.entries(grades)) {
+        const option = document.createElement("option");
+        option.value = point;
+        option.text = grade;
+        gradeSelect.appendChild(option);
+      }
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "✕";
+      removeBtn.style.backgroundColor = "#d32f2f";
+      removeBtn.style.width = "40px";
+      removeBtn.style.padding = "0";
+      removeBtn.style.height = "43px"; 
+      removeBtn.onclick = () => container.removeChild(row);
+
+      row.appendChild(creditInput);
+      row.appendChild(gradeSelect);
+      row.appendChild(removeBtn);
+      container.appendChild(row);
+    }
+
+    function calculateSGPA() {
+      const container = document.getElementById("subjectsContainer");
+      const rows = container.children;
+      let totalCredits = 0;
+      let totalPoints = 0;
+      let hasError = false;
+
+      if (rows.length === 0) {
+        document.getElementById("sgpaResult").textContent = "Please add subjects.";
+        return;
+      }
+
+      for (let row of rows) {
+        const inputs = row.querySelectorAll("input, select");
+        const credit = parseFloat(inputs[0].value);
+        const gradePoint = parseFloat(inputs[1].value);
+
+        if (isNaN(credit) || isNaN(gradePoint)) {
+          hasError = true;
+        } else {
+          totalCredits += credit;
+          totalPoints += credit * gradePoint;
+        }
+      }
+
+      const result = document.getElementById("sgpaResult");
+      if (hasError) {
+        result.textContent = "Please enter valid credits and grades for all subjects.";
+        result.style.color = "#d32f2f";
+      } else if (totalCredits === 0) {
+        result.textContent = "Total credits cannot be zero.";
+        result.style.color = "#d32f2f";
+      } else {
+        const sgpa = totalPoints / totalCredits;
+        result.textContent = `Your SGPA is: ${sgpa.toFixed(2)}`;
+        result.style.color = "inherit";
+      }
+    }
+
+    for (let i = 0; i < 5; i++) addSubjectRow();
+
   </script>
 </body>
+
 </html>
